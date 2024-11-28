@@ -68,6 +68,10 @@ function Editor(node, shadow = null) {
     return this.node.innerHTML;
   };
 
+  this.setText = function(text){
+    this.node.innerHTML = text;
+  }
+
   /**
    * Formats the selected text with a specified inline tag (e.g., <b>, <i>, <u>).
    * @param {string} tagName - The tag name to apply to the selected text.
@@ -233,7 +237,16 @@ function Editor(node, shadow = null) {
             composed: true,
           })
         );
-        img.addEventListener('removed', ()=>{
+        img.addEventListener('removed', () => {
+          this.node.dispatchEvent(
+            new Event("input", {
+              bubbles: true,
+              cancelable: true,
+              composed: true,
+            })
+          );
+        });
+        img.addEventListener('resize', ()=>{
           this.node.dispatchEvent(
             new Event("input", {
               bubbles: true,
@@ -242,6 +255,7 @@ function Editor(node, shadow = null) {
             })
           );
         })
+
       } catch (e) {}
     }
   };
@@ -371,13 +385,20 @@ function Editor(node, shadow = null) {
 
   this.inserSymbol = function() {
     this.setSelection()
-    const symbolPicker = document.createElement("symbol-picker");
-    document.body.appendChild(symbolPicker);
-    symbolPicker.addEventListener("insert", (e) => {
-      const symbol = symbolPicker.value;
-      const node = document.createTextNode(symbol)
-      this.range.insertNode(node)
-    })
+    if (
+      this.selection &&
+      this.selection.anchorOffset === this.selection.focusOffset
+    ) {
+      try {
+        const symbolPicker = document.createElement("symbol-picker");
+        document.body.appendChild(symbolPicker);
+        symbolPicker.addEventListener("insert", (e) => {
+          const symbol = symbolPicker.value;
+          const node = document.createTextNode(symbol)
+          this.range.insertNode(node)
+        })
+      } catch (e){}
+    }
   }
 
   /**

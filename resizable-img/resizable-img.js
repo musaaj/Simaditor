@@ -226,6 +226,7 @@ class ResizableImage extends HTMLElement {
           // Update the custom element's attributes
           this.setAttribute('width', Math.round(newWidth));
           this.setAttribute('height', Math.round(newHeight));
+          this.dispatchEvent(new Event('resize', {cancelable: true, composed: true, bubbles: true}))
         };
     
         const stopResize = () => {
