@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Vite App</title>
+    <script type="module" defer src="./main.js"></script>
+  </head>
+  <body>
+    <div x-data="state" x-router>
+      <!-- Define routing templates with external paths -->
+      <template x-route="/" x-template="./pages/sign-in.html"></template>
+      <template x-route="/home/" x-template="./pages/home.html"></template>
+      <template x-route="/edit/:idx" x-template="./pages/edit.html"></template>
+    </div>
+  </body>
+</html>
