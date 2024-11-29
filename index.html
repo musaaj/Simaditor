@@ -11,11 +11,19 @@
     <script type="module" defer src="./main.js"></script>
   </head>
   <body>
-    <div x-data="state" x-router>
-      <!-- Define routing templates with external paths -->
-      <template x-route="/" x-template="./pages/sign-in.html"></template>
-      <template x-route="/home/" x-template="./pages/home.html"></template>
-      <template x-route="/edit/:idx" x-template="./pages/edit.html"></template>
+    <div>
+      <rich-textarea id="editor" value=""></rich-textarea>
+      <div id="preview">
+        Hello
+      </div>
     </div>
+    <script>
+      const editor = document.getElementById('editor')
+      const preview = document.getElementById('preview')
+      editor.addEventListener('input', e=>{
+        //console.log(e.target.value);
+        preview.innerHTML = editor.getAttribute('value')
+      })
+    </script>
   </body>
 </html>

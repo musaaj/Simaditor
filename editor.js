@@ -5,6 +5,7 @@
 import ResizableImage from "./resizable-img";
 import LatexRenderer from "./latex-renderer/index.js";
 import SymbolPicker from "./symbol-picker/symbol-picker.js";
+import { html2Editor, process } from "./html2editor/index.js"
 import "mathlive";
 import "./node_modules/mathlive/dist/mathlive-static.css";
 import "./katex/katex/katex.min.css";
@@ -65,11 +66,47 @@ function Editor(node, shadow = null) {
    * @returns {string} The inner HTML of the editor.
    */
   this.getText = function () {
-    return this.node.innerHTML;
+    return process(this.node.childNodes)
   };
 
   this.setText = function(text){
-    this.node.innerHTML = text;
+    this.node.innerHTML = text
+    html2Editor(this.node);
+
+    const resizableImages = this.node.querySelectorAll('resizable-img')
+    const latexRenderers = this.node.querySelectorAll('latex-renderer')
+    resizableImages.forEach(node=>{
+      node.addEventListener('resize',()=>{
+        this.node.dispatchEvent(
+          new Event("input", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        );
+      })
+      node.addEventListener('removed',()=>{
+        this.node.dispatchEvent(
+          new Event("input", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        );
+      })
+    })
+
+    latexRenderers.forEach(node=>{
+      node.addEventListener('removed',()=>{
+        this.node.dispatchEvent(
+          new Event("input", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        );
+      })
+    })
   }
 
   /**
@@ -396,6 +433,14 @@ function Editor(node, shadow = null) {
           const symbol = symbolPicker.value;
           const node = document.createTextNode(symbol)
           this.range.insertNode(node)
+          this.node.dispatchEvent(
+            new Event("input", {
+              bubbles: true,
+              cancelable: true,
+              composed: true,
+            })
+          );
+          document.body.removeChild(symbolPicker);
         })
       } catch (e){}
     }

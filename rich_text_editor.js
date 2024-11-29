@@ -8,17 +8,19 @@ class RichTextEditor extends HTMLElement {
 
   connectedCallback(){
     const html = this.innerHTML + '&nbsp;';
-    const value = this.value + '&nbsp;'
+    const value = this.getAttribute('value')
     this.innerHTML = '';
     this.createEditor();
     this.syncProperties()
-    this.editorPane.innerHTML = value? value : html; 
+    this.editor.setText(value || html)
     this.editorPane.addEventListener('input', this._emitInputEvent.bind(this))
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    if (this.editorPane && this.editorPane[name] !== newValue) {
-      this.editorPane[name] = newValue === null ? '' : newValue;
+    if (name === 'value') {
+      //this.editor.setText(newValue)
+    } else if(this.editorPane && this.editorPane[name] !== newValue) {
+      this.editorPane[name] = newValue? newValue : '';
     }
   }
 
@@ -104,7 +106,7 @@ class RichTextEditor extends HTMLElement {
       composed: true
     })
 
-    this.setAttribute('value', this.editorPane.innerHTML)
+    this.setAttribute('value', this.editor.getText())
     this.dispatchEvent(event)
   }
 
@@ -120,20 +122,13 @@ class RichTextEditor extends HTMLElement {
     return ['value', 'innerHTML', 'name'];
   }
 
-  set innerHTML(val){
-    this.value = val
-    this.editorPane? this.editorPane.innerHTML = val : null
-  }
-  get innerHTML(){
-    return this.editorPane? this.editorPane.innerHTML : null
-  }
-
   set value(val){
     this.setAttribute('value', val)
-    this.editorPane? this.editorPane.innerHTML = val : null
+    this.editor? this.editor.setText(val  || '') : ''
   }
+
   get value(){
-    return this.editorPane? this.editorPane.innerHTML  : null
+    return this.editor? this.editor.getText() : ''
   }
 
 }

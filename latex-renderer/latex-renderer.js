@@ -2,6 +2,17 @@ import "katex/dist/katex.min.css"
 import "katex/dist/contrib/mhchem.js"
 import katex from "katex";
 
+function renderLatexToString(latexString) {
+  try {
+    return katex.renderToString(latexString, {
+      throwOnError: false, // Prevent errors from being thrown for invalid LaTeX
+    });
+  } catch (error) {
+    console.error("Error rendering LaTeX:", error);
+    return "Invalid LaTeX";
+  }
+}
+
 class LatexRenderer extends HTMLElement {
   constructor() {
     super();
@@ -91,6 +102,9 @@ class LatexRenderer extends HTMLElement {
     if (!this.contains(event.target)) {
       this.button.style.display = "none";
     }
+  }
+  get string(){
+    return renderLatexToString(this.getAttribute('value'))
   }
 }
 
