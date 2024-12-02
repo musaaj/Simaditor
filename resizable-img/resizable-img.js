@@ -1,5 +1,3 @@
-import "@fortawesome/fontawesome-free/css/all.min.css";
-
 class ResizableImage extends HTMLElement {
     static get observedAttributes() {
       return ['width', 'height', 'src', 'alt'];

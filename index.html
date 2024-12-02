@@ -13,17 +13,14 @@
   <body>
     <div>
       <rich-textarea id="editor" value=""></rich-textarea>
-      <div id="preview">
-        Hello
-      </div>
+      <div id="preview">Hello</div>
     </div>
     <script>
-      const editor = document.getElementById('editor')
-      const preview = document.getElementById('preview')
-      editor.addEventListener('input', e=>{
-        //console.log(e.target.value);
-        preview.innerHTML = editor.getAttribute('value')
-      })
+      const editor = document.getElementById("editor");
+      const preview = document.getElementById("preview");
+      editor.addEventListener("input", (e) => {
+        preview.innerHTML = editor.getAttribute("value");
+      });
     </script>
   </body>
 </html>

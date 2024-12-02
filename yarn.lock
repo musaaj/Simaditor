@@ -132,11 +132,6 @@
   optionalDependencies:
     esbuild-linux-64 "^0.14.5"
 
-"@fortawesome/fontawesome-free@^6.7.0":
-  version "6.7.1"
-  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-free/-/fontawesome-free-6.7.1.tgz#160a48730d533ec77578ed0141661a8f0150a71d"
-  integrity sha512-ALIk/MOh5gYe1TG/ieS5mVUsk7VUIJTJKPMK9rFFqOgfp0Q3d5QiBXbcOMwUvs37fyZVCz46YjOE6IFeOAXCHA==
-
 "@rollup/rollup-android-arm-eabi@4.27.4":
   version "4.27.4"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.27.4.tgz#e3c9cc13f144ba033df4d2c3130a214dc8e3473e"
@@ -232,25 +227,6 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.6.tgz#628effeeae2064a1b4e79f78e81d87b7e5fc7b50"
   integrity sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==
 
-"@vue/reactivity@~3.1.1":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@vue/reactivity/-/reactivity-3.1.5.tgz#dbec4d9557f7c8f25c2635db1e23a78a729eb991"
-  integrity sha512-1tdfLmNjWG6t/CsPldh+foumYFo3cpyCHgBYQ34ylaMsJ+SNHQ1kApMIa8jN+i593zQuaw3AdWH0nJTARzCFhg==
-  dependencies:
-    "@vue/shared" "3.1.5"
-
-"@vue/shared@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@vue/shared/-/shared-3.1.5.tgz#74ee3aad995d0a3996a6bb9533d4d280514ede03"
-  integrity sha512-oJ4F3TnvpXaQwZJNF3ZK+kLPHKarDmJjJ6jyzVNDKH9md1dptjC7lWR//jrGuLdek/U6iltWxqAnYOu8gCiOvA==
-
-alpinejs@^3.14.3:
-  version "3.14.4"
-  resolved "https://registry.yarnpkg.com/alpinejs/-/alpinejs-3.14.4.tgz#d6bba57a581a32a9eb6ba8dd3166370bb155333b"
-  integrity sha512-fRRQaNO/CbY2jmMsu3xV38XmUlltxfoOZug7UwhX6Q6FcjloFcKdjzepeGhH2YC7LDbY6Nk1SMPOmnbZW2rOLA==
-  dependencies:
-    "@vue/reactivity" "~3.1.1"
-
 commander@^8.3.0:
   version "8.3.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-8.3.0.tgz#4837ea1b2da67b9c616a67afbb0fafee567bca66"
@@ -328,11 +304,6 @@ picocolors@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/picocolors/-/picocolors-1.1.1.tgz#3d321af3eab939b083c8f929a1d12cda81c26b6b"
   integrity sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==
-
-pinecone-router@^4.4.1:
-  version "4.4.1"
-  resolved "https://registry.yarnpkg.com/pinecone-router/-/pinecone-router-4.4.1.tgz#937cdb4cec053e8f9d13e669e842fe442b113cbf"
-  integrity sha512-lzYz4ngAoyNRJclxTSnLNtY6iD1V4xc2+bj8gUsPPh9qJW0B/2KrURvKLV7KmititEEajybYSdGk1Tx87fCLIw==
 
 postcss@^8.4.43:
   version "8.4.49"

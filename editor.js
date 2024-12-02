@@ -13,6 +13,16 @@ customElements.define("latex-renderer", LatexRenderer);
 customElements.define("resizable-img", ResizableImage);
 customElements.define("symbol-picker", SymbolPicker)
 
+function wrapFirstPartWithP(htmlString) {
+  const firstPIndex = htmlString.indexOf('<p>');
+  const endIndex = firstPIndex === -1 ? htmlString.length : firstPIndex;
+
+  const wrappedString = '<p>' + htmlString.slice(0, endIndex) + '</p>' + htmlString.slice(endIndex);
+
+  return wrappedString;
+}
+
+
 function Editor(node, shadow = null) {
   this.selection = null;
   this.range = null;
@@ -26,6 +36,24 @@ function Editor(node, shadow = null) {
    */
   this.init = function () {
     this.node.contentEditable = true;
+    this.node.addEventListener('keydown', e=>{
+      if(e.key == 'Enter'){
+        e.preventDefault();
+        const p = document.createElement('p');
+        p.innerHTML = '&thinsp;'
+
+        this.setSelection();
+        this.range = this.selection.getRangeAt(0);
+        this.range.deleteContents()
+        this.range.insertNode(p);
+
+        this.range.setStart(p, 0);
+        this.range.setEnd(p, 0);
+
+        this.selection.removeAllRanges()
+        this.selection.addRange(this.range)
+      }
+    })
   };
 
   /**
@@ -66,7 +94,7 @@ function Editor(node, shadow = null) {
    * @returns {string} The inner HTML of the editor.
    */
   this.getText = function () {
-    return process(this.node.childNodes)
+    return wrapFirstPartWithP(process(this.node.childNodes))
   };
 
   this.setText = function(text){

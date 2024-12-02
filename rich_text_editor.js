@@ -28,25 +28,25 @@ class RichTextEditor extends HTMLElement {
   createStyle(){
     const style = document.createElement('style');
     style.textContent = `
-    .container {
+    .rich-container {
       border: 1px solid #bbb;
       border-radius: 4pt;
       min-height: 80pt;
     }
-    .container > .toolbar, .container > .editor-area{
+    .rich-container > .toolbar, .rich-container > .editor-area{
       width: 100%;
     }
-    .container > .editor-area {
+    .rich-container > .editor-area {
       height: inherit;
       outline: none;
       border: none;
       padding: 8pt;
     }
-    .container > .toolbar {
+    .rich-container > .toolbar {
       display: flex;
       border-bottom: 1px solid #999;
     }
-    .container > .toolbar > button {
+    .rich-container > .toolbar > button {
       appearance: none;
       outline: none;
       border: none;
@@ -90,7 +90,7 @@ class RichTextEditor extends HTMLElement {
   createEditor() {
     this.appendChild(this.createStyle())
     this.editorContainer = document.createElement('div')
-    this.editorContainer.className = 'container'
+    this.editorContainer.className = 'rich-container'
     this.editorPane = document.createElement('div');
     this.editorPane.className = 'editor-area'
     this.editor = new Editor(this.editorPane, this.shadowRoot);
