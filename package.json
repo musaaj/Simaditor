@@ -12,7 +12,6 @@
     "vite": "^5.4.10"
   },
   "dependencies": {
-    "@flaticon/flaticon-uicons": "^3.3.1",
     "katex": "^0.16.11",
     "mathlive": "^0.101.2"
   }

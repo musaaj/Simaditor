@@ -8,7 +8,7 @@ import SymbolPicker from "./symbol-picker/symbol-picker.js";
 import { html2Editor, process } from "./html2editor/index.js"
 import "mathlive";
 import "./node_modules/mathlive/dist/mathlive-static.css";
-import "./katex/katex/katex.min.css";
+import "katex/dist/katex.min.css";
 customElements.define("latex-renderer", LatexRenderer);
 customElements.define("resizable-img", ResizableImage);
 customElements.define("symbol-picker", SymbolPicker)
@@ -40,7 +40,7 @@ function Editor(node, shadow = null) {
       if(e.key == 'Enter'){
         e.preventDefault();
         const p = document.createElement('p');
-        p.innerHTML = '&thinsp;'
+        p.innerHTML = '&#8203;'
 
         this.setSelection();
         this.range = this.selection.getRangeAt(0);
@@ -49,9 +49,13 @@ function Editor(node, shadow = null) {
 
         this.range.setStart(p, 0);
         this.range.setEnd(p, 0);
+        
 
-        this.selection.removeAllRanges()
-        this.selection.addRange(this.range)
+        this.selection.removeAllRanges();
+        this.selection.addRange(this.range);
+        this.node.dispatchEvent(
+          new Event("input", { bubbles: true, cancelable: true, composed: true })
+        );
       }
     })
   };
@@ -94,7 +98,7 @@ function Editor(node, shadow = null) {
    * @returns {string} The inner HTML of the editor.
    */
   this.getText = function () {
-    return wrapFirstPartWithP(process(this.node.childNodes))
+    return wrapFirstPartWithP(process(this.node.childNodes));
   };
 
   this.setText = function(text){
@@ -167,8 +171,8 @@ function Editor(node, shadow = null) {
         container.parentNode.replaceChild(container.firstChild, container);
       }
     }
-    this.selection = null;
-    this.range = null;
+    //this.selection = null;
+    //this.range = null;
     this.node.dispatchEvent(
       new Event("input", { bubbles: true, cancelable: true, composed: true })
     );
