@@ -22,6 +22,17 @@ function wrapFirstPartWithP(htmlString) {
   return wrappedString;
 }
 
+function copyChildNodes(sourceElement, destinationElement) {
+  if (!(sourceElement instanceof HTMLElement) || !(destinationElement instanceof HTMLElement)) {
+      throw new Error("Both sourceElement and destinationElement must be valid HTML elements.");
+  }
+  
+  // Clone each child node from the source element
+  sourceElement.childNodes.forEach(node => {
+      // Append a deep clone of the node to the destination element
+      destinationElement.appendChild(node.cloneNode(true));
+  });
+}
 
 function Editor(node, shadow = null) {
   this.selection = null;
@@ -39,20 +50,58 @@ function Editor(node, shadow = null) {
     this.node.addEventListener('keydown', e=>{
       if(e.key == 'Enter'){
         e.preventDefault();
-        const p = document.createElement('p');
-        p.innerHTML = '&#8203;'
 
-        this.setSelection();
+        this.selection = window.getSelection();
         this.range = this.selection.getRangeAt(0);
-        this.range.deleteContents()
-        this.range.insertNode(p);
 
-        this.range.setStart(p, 0);
-        this.range.setEnd(p, 0);
-        
+        const startContainer = this.range.startContainer.nodeType === Node.TEXT_NODE
+      ? this.range.startContainer.parentElement
+      : this.range.startContainer;
 
+      const parentParagraph = startContainer.closest('p');
+      
+
+      if (parentParagraph) {
+        console.log('yes')
+        const splitRange = this.range.cloneRange();
+        splitRange.setEndAfter(parentParagraph);
+      const afterContent = splitRange.extractContents(); // Get the content after the cursor
+      
+      // Create a new paragraph for the after content
+      const newParagraph = document.createElement('p');
+      if(afterContent.firstChild.innerHTML) {
+        copyChildNodes(afterContent.firstChild, newParagraph)
+      } else {
+        newParagraph.appendChild(document.createElement('br'));
+      }
+      
+      // Insert the new paragraph after the current one
+      parentParagraph.after(newParagraph);
+
+      const deleteRange = this.range.cloneRange();
+      deleteRange.setStart(this.range.endContainer, this.range.endOffset);
+      deleteRange.setEndAfter(parentParagraph);
+      deleteRange.deleteContents();
+
+      // Move the cursor to the new paragraph
+      const newRange = document.createRange();
+      newRange.selectNodeContents(newParagraph);
+      newRange.collapse(true); // Set cursor at the start of the new paragraph
+      this.selection.removeAllRanges();
+      this.selection.addRange(newRange);
+      } else {
+        // If not inside a paragraph, insert the new paragraph at the current position
+        const newParagraph = document.createElement('p');
+        newParagraph.innerHTML = '<br>'; 
+        this.range.insertNode(newParagraph);
+        const newRange = document.createRange();
+        newRange.selectNodeContents(newParagraph);
+        this.range.setStartAfter(newParagraph, 0)
+        this.range.setEndAfter(newParagraph, 0)
+        newRange.collapse(false); // Set cursor at the start of the paragraph
         this.selection.removeAllRanges();
-        this.selection.addRange(this.range);
+        this.selection.addRange(newRange);
+      }
         this.node.dispatchEvent(
           new Event("input", { bubbles: true, cancelable: true, composed: true })
         );
@@ -102,7 +151,8 @@ function Editor(node, shadow = null) {
   };
 
   this.setText = function(text){
-    this.node.innerHTML = text
+    this.node.innerHTML = text || '<p>&thinsp</p>';
+  
     html2Editor(this.node);
 
     const resizableImages = this.node.querySelectorAll('resizable-img')
