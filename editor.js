@@ -5,40 +5,44 @@
 import ResizableImage from "./resizable-img";
 import LatexRenderer from "./latex-renderer/index.js";
 import SymbolPicker from "./symbol-picker/symbol-picker.js";
-import { html2Editor, process } from "./html2editor/index.js"
+import { html2Editor, process } from "./html2editor/index.js";
 import "mathlive";
 import "./node_modules/mathlive/dist/mathlive-static.css";
 import "katex/dist/katex.min.css";
 customElements.define("latex-renderer", LatexRenderer);
 customElements.define("resizable-img", ResizableImage);
-customElements.define("symbol-picker", SymbolPicker)
+customElements.define("symbol-picker", SymbolPicker);
 
 function wrapFirstPartWithP(htmlString) {
-  const firstPIndex = htmlString.indexOf('<p>');
+  const firstPIndex = htmlString.indexOf("<p>");
   const endIndex = firstPIndex === -1 ? htmlString.length : firstPIndex;
 
-  const wrappedString = '<p>' + htmlString.slice(0, endIndex) + '</p>' + htmlString.slice(endIndex);
+  const wrappedString =
+    "<p>" + htmlString.slice(0, endIndex) + "</p>" + htmlString.slice(endIndex);
 
   return wrappedString;
 }
 
 function copyChildNodes(sourceElement, destinationElement) {
-  if (!(sourceElement instanceof HTMLElement) || !(destinationElement instanceof HTMLElement)) {
-      throw new Error("Both sourceElement and destinationElement must be valid HTML elements.");
+  if (
+    !(sourceElement instanceof HTMLElement) ||
+    !(destinationElement instanceof HTMLElement)
+  ) {
+    throw new Error(
+      "Both sourceElement and destinationElement must be valid HTML elements."
+    );
   }
-  
+
   // Clone each child node from the source element
-  sourceElement.childNodes.forEach(node => {
-      // Append a deep clone of the node to the destination element
-      destinationElement.appendChild(node.cloneNode(true));
+  sourceElement.childNodes.forEach((node) => {
+    // Append a deep clone of the node to the destination element
+    destinationElement.appendChild(node.cloneNode(true));
   });
 }
 
 function Editor(node, shadow = null) {
   this.selection = null;
   this.range = null;
-  const self = this;
-  self.imageResizable = false;
   this.node = node;
   const root = shadow || document;
 
@@ -47,66 +51,92 @@ function Editor(node, shadow = null) {
    */
   this.init = function () {
     this.node.contentEditable = true;
-    this.node.addEventListener('keydown', e=>{
-      if(e.key == 'Enter'){
+    this.node.addEventListener("input", () => {
+      if (this.node.firstChild.tagName != "P") {
+        const textNode = this.node.firstChild;
+        const paragraph = document.createElement("p");
+        this.node.replaceChild(paragraph, textNode);
+        paragraph.appendChild(textNode);
+      }
+    });
+    this.node.addEventListener("focus", () => {
+      if (this.node.firstChild.tagName != "P") {
+        const textNode = this.node.firstChild;
+        const paragraph = document.createElement("p");
+        this.node.replaceChild(paragraph, textNode);
+        paragraph.appendChild(textNode);
+        this.setSelection();
+        this.range = new Range();
+        this.range.setStart(paragraph, 1);
+        this.range.setEnd(paragraph, 1);
+        this.selection.removeAllRanges();
+        this.selection.addRange(this.range);
+        this.range.collapse(true);
+      }
+    });
+    this.node.addEventListener("keydown", (e) => {
+      if (e.key == "Enter") {
         e.preventDefault();
 
         this.selection = window.getSelection();
         this.range = this.selection.getRangeAt(0);
 
-        const startContainer = this.range.startContainer.nodeType === Node.TEXT_NODE
-      ? this.range.startContainer.parentElement
-      : this.range.startContainer;
+        const startContainer =
+          this.range.startContainer.nodeType === Node.TEXT_NODE
+            ? this.range.startContainer.parentElement
+            : this.range.startContainer;
 
-      const parentParagraph = startContainer.closest('p');
-      
+        const parentParagraph = startContainer.closest("p");
 
-      if (parentParagraph) {
-        console.log('yes')
-        const splitRange = this.range.cloneRange();
-        splitRange.setEndAfter(parentParagraph);
-      const afterContent = splitRange.extractContents(); // Get the content after the cursor
-      
-      // Create a new paragraph for the after content
-      const newParagraph = document.createElement('p');
-      if(afterContent.firstChild.innerHTML) {
-        copyChildNodes(afterContent.firstChild, newParagraph)
-      } else {
-        newParagraph.appendChild(document.createElement('br'));
-      }
-      
-      // Insert the new paragraph after the current one
-      parentParagraph.after(newParagraph);
+        if (parentParagraph) {
+          const splitRange = this.range.cloneRange();
+          splitRange.setEndAfter(parentParagraph);
+          const afterContent = splitRange.extractContents(); // Get the content after the cursor
 
-      const deleteRange = this.range.cloneRange();
-      deleteRange.setStart(this.range.endContainer, this.range.endOffset);
-      deleteRange.setEndAfter(parentParagraph);
-      deleteRange.deleteContents();
+          // Create a new paragraph for the after content
+          const newParagraph = document.createElement("p");
+          if (afterContent.firstChild.innerHTML) {
+            copyChildNodes(afterContent.firstChild, newParagraph);
+          } else {
+            newParagraph.appendChild(document.createElement("br"));
+          }
 
-      // Move the cursor to the new paragraph
-      const newRange = document.createRange();
-      newRange.selectNodeContents(newParagraph);
-      newRange.collapse(true); // Set cursor at the start of the new paragraph
-      this.selection.removeAllRanges();
-      this.selection.addRange(newRange);
-      } else {
-        // If not inside a paragraph, insert the new paragraph at the current position
-        const newParagraph = document.createElement('p');
-        newParagraph.innerHTML = '<br>'; 
-        this.range.insertNode(newParagraph);
-        const newRange = document.createRange();
-        newRange.selectNodeContents(newParagraph);
-        this.range.setStartAfter(newParagraph, 0)
-        this.range.setEndAfter(newParagraph, 0)
-        newRange.collapse(false); // Set cursor at the start of the paragraph
-        this.selection.removeAllRanges();
-        this.selection.addRange(newRange);
-      }
+          // Insert the new paragraph after the current one
+          parentParagraph.after(newParagraph);
+
+          const deleteRange = this.range.cloneRange();
+          deleteRange.setStart(this.range.endContainer, this.range.endOffset);
+          deleteRange.setEndAfter(parentParagraph);
+          deleteRange.deleteContents();
+
+          // Move the cursor to the new paragraph
+          const newRange = document.createRange();
+          newRange.selectNodeContents(newParagraph);
+          newRange.collapse(true); // Set cursor at the start of the new paragraph
+          this.selection.removeAllRanges();
+          this.selection.addRange(newRange);
+        } else {
+          // If not inside a paragraph, insert the new paragraph at the current position
+          const newParagraph = document.createElement("p");
+          newParagraph.innerHTML = "<br>";
+          this.range.insertNode(newParagraph);
+          const newRange = document.createRange();
+          newRange.selectNodeContents(newParagraph);
+          this.range.setStartAfter(newParagraph, 0);
+          this.range.setEndAfter(newParagraph, 0);
+          newRange.collapse(false); // Set cursor at the start of the paragraph
+          this.selection.removeAllRanges();
+          this.selection.addRange(newRange);
+        }
         this.node.dispatchEvent(
-          new Event("input", { bubbles: true, cancelable: true, composed: true })
+          new Event("input", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
         );
       }
-    })
+    });
   };
 
   /**
@@ -147,18 +177,18 @@ function Editor(node, shadow = null) {
    * @returns {string} The inner HTML of the editor.
    */
   this.getText = function () {
-    return wrapFirstPartWithP(process(this.node.childNodes));
+    return process(this.node.childNodes);
   };
 
-  this.setText = function(text){
-    this.node.innerHTML = text || '<p>&thinsp</p>';
-  
+  this.setText = function (text) {
+    this.node.innerHTML = text || "<p>&thinsp</p>";
+
     html2Editor(this.node);
 
-    const resizableImages = this.node.querySelectorAll('resizable-img')
-    const latexRenderers = this.node.querySelectorAll('latex-renderer')
-    resizableImages.forEach(node=>{
-      node.addEventListener('resize',()=>{
+    const resizableImages = this.node.querySelectorAll("resizable-img");
+    const latexRenderers = this.node.querySelectorAll("latex-renderer");
+    resizableImages.forEach((node) => {
+      node.addEventListener("resize", () => {
         this.node.dispatchEvent(
           new Event("input", {
             bubbles: true,
@@ -166,8 +196,8 @@ function Editor(node, shadow = null) {
             composed: true,
           })
         );
-      })
-      node.addEventListener('removed',()=>{
+      });
+      node.addEventListener("removed", () => {
         this.node.dispatchEvent(
           new Event("input", {
             bubbles: true,
@@ -175,11 +205,11 @@ function Editor(node, shadow = null) {
             composed: true,
           })
         );
-      })
-    })
+      });
+    });
 
-    latexRenderers.forEach(node=>{
-      node.addEventListener('removed',()=>{
+    latexRenderers.forEach((node) => {
+      node.addEventListener("removed", () => {
         this.node.dispatchEvent(
           new Event("input", {
             bubbles: true,
@@ -187,9 +217,9 @@ function Editor(node, shadow = null) {
             composed: true,
           })
         );
-      })
-    })
-  }
+      });
+    });
+  };
 
   /**
    * Formats the selected text with a specified inline tag (e.g., <b>, <i>, <u>).
@@ -346,8 +376,8 @@ function Editor(node, shadow = null) {
         img.setAttribute("width", 300);
         img.setAttribute("height", 300);
         self.range.insertNode(img);
-        this.range.setStartAfter(img)
-        this.range.collapse(true)
+        this.range.setStartAfter(img);
+        this.range.collapse(true);
         self.range.insertNode(space);
         this.node.dispatchEvent(
           new Event("input", {
@@ -356,7 +386,7 @@ function Editor(node, shadow = null) {
             composed: true,
           })
         );
-        img.addEventListener('removed', () => {
+        img.addEventListener("removed", () => {
           this.node.dispatchEvent(
             new Event("input", {
               bubbles: true,
@@ -365,7 +395,7 @@ function Editor(node, shadow = null) {
             })
           );
         });
-        img.addEventListener('resize', ()=>{
+        img.addEventListener("resize", () => {
           this.node.dispatchEvent(
             new Event("input", {
               bubbles: true,
@@ -373,8 +403,7 @@ function Editor(node, shadow = null) {
               composed: true,
             })
           );
-        })
-
+        });
       } catch (e) {}
     }
   };
@@ -420,7 +449,7 @@ function Editor(node, shadow = null) {
    * Inserts a MathML equation into the editor using a modal dialog box with Mathlive input.
    */
   this.insertMathML = function () {
-    this.setSelection()
+    this.setSelection();
     // Create the modal box
     const modal = document.createElement("div");
     modal.style.position = "fixed";
@@ -458,7 +487,7 @@ function Editor(node, shadow = null) {
     // Event listener for the insert button
     insertButton.addEventListener("click", () => {
       const mathML = mathInput.getValue("latex");
-      const space = document.createTextNode('\u2009');
+      const space = document.createTextNode("\u2009");
       const mathElement = document.createElement("latex-renderer");
       if (mathML) {
         // Insert the MathML at the current cursor position
@@ -470,8 +499,8 @@ function Editor(node, shadow = null) {
           mathElement.setAttribute("value", mathML);
           mathElement.contentEditable = false;
           this.range.insertNode(mathElement);
-          this.range.setStartAfter(mathElement)
-          this.range.collapse(true)
+          this.range.setStartAfter(mathElement);
+          this.range.collapse(true);
           this.range.insertNode(space);
           this.node.dispatchEvent(
             new Event("input", {
@@ -480,7 +509,7 @@ function Editor(node, shadow = null) {
               composed: true,
             })
           );
-          mathElement.addEventListener('removed', ()=>{
+          mathElement.addEventListener("removed", () => {
             this.node.dispatchEvent(
               new Event("input", {
                 bubbles: true,
@@ -488,7 +517,7 @@ function Editor(node, shadow = null) {
                 composed: true,
               })
             );
-          })
+          });
         }
       }
       // Remove the modal after inserting
@@ -502,8 +531,8 @@ function Editor(node, shadow = null) {
     });
   };
 
-  this.inserSymbol = function() {
-    this.setSelection()
+  this.inserSymbol = function () {
+    this.setSelection();
     if (
       this.selection &&
       this.selection.anchorOffset === this.selection.focusOffset
@@ -513,8 +542,8 @@ function Editor(node, shadow = null) {
         document.body.appendChild(symbolPicker);
         symbolPicker.addEventListener("insert", (e) => {
           const symbol = symbolPicker.value;
-          const node = document.createTextNode(symbol)
-          this.range.insertNode(node)
+          const node = document.createTextNode(symbol);
+          this.range.insertNode(node);
           this.node.dispatchEvent(
             new Event("input", {
               bubbles: true,
@@ -523,10 +552,10 @@ function Editor(node, shadow = null) {
             })
           );
           document.body.removeChild(symbolPicker);
-        })
-      } catch (e){}
+        });
+      } catch (e) {}
     }
-  }
+  };
 
   /**
    * Inserts a list (ordered or unordered) at the current cursor position.

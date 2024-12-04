@@ -14,12 +14,11 @@ class RichTextEditor extends HTMLElement {
   }
 
   connectedCallback(){
-    const html = this.innerHTML + '&nbsp;';
-    const value = this.getAttribute('value')
+    const value = this.getAttribute('value') || '<p>&thinsp;</p>';
     this.innerHTML = '';
     this.createEditor();
     this.syncProperties()
-    this.editor.setText(value || html)
+    this.editor.setText(value)
     this.editorPane.addEventListener('input', this._emitInputEvent.bind(this))
   }
 
@@ -39,6 +38,7 @@ class RichTextEditor extends HTMLElement {
       border: 1px solid #eee;
       border-radius: 4pt;
       min-height: 80pt;
+      box-shadow: 3px 2px 16px -7px rgba(0,0,0,0.1);
     }
     .rich-container > .toolbar, .rich-container > .editor-area{
       width: 100%;
@@ -131,12 +131,12 @@ class RichTextEditor extends HTMLElement {
   }
 
   set value(val){
-    this.setAttribute('value', val)
-    this.editor? this.editor.setText(val  || '') : ''
+    this.setAttribute('value', val || '<p>&thinsp;</p>')
+    this.editor? this.editor.setText(val  || '<p>&thinsp;</p>') : ''
   }
 
   get value(){
-    return this.editor? this.editor.getText() : ''
+    return this.editor? this.editor.getText() : '<p></p>'
   }
 
 }

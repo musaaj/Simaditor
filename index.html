@@ -19,7 +19,7 @@
       const editor = document.getElementById("editor");
       const preview = document.getElementById("preview");
       editor.addEventListener("input", (e) => {
-        preview.innerHTML = editor.getAttribute("value");
+        preview.textContent = editor.getAttribute("value");
       });
     </script>
   </body>
