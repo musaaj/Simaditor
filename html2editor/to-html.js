@@ -11,7 +11,7 @@ function sanitizeHtmlString(htmlString) {
   }
 
 function processResizableImage(node) {
-    return `<img width=${node.getAttribute('width')} height=${node.getAttribute('height')} style="width: ${node.getAttribute('width')}px; height: ${node.getAttribute('height')}px;; object-fit: fit;" src="${node.getAttribute('src')}" />`
+    return `<img width=${node.getAttribute('width')} height=${node.getAttribute('height')} style="width:${node.getAttribute('width')}px;height:${node.getAttribute('height')}px;object-fit:fit;" src="${node.getAttribute('src')}" />`
 }
 
 function processLatexRenderer(node) {

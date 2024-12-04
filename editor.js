@@ -52,15 +52,20 @@ function Editor(node, shadow = null) {
   this.init = function () {
     this.node.contentEditable = true;
     this.node.addEventListener("input", () => {
-      if (this.node.firstChild.tagName != "P") {
+      if (this.node.firstChild && this.node.firstChild.tagName != "P") {
         const textNode = this.node.firstChild;
         const paragraph = document.createElement("p");
         this.node.replaceChild(paragraph, textNode);
         paragraph.appendChild(textNode);
+      } else if (!this.node.firstChild) {
+        const textNode = document.createTextNode('\u2009')
+        const paragraph = document.createElement("p");
+        this.node.appendChild(paragraph)
+        paragraph.appendChild(textNode);
       }
     });
     this.node.addEventListener("focus", () => {
-      if (this.node.firstChild.tagName != "P") {
+      if (this.node.firstChild &&this.node.firstChild.tagName != "P") {
         const textNode = this.node.firstChild;
         const paragraph = document.createElement("p");
         this.node.replaceChild(paragraph, textNode);
@@ -72,9 +77,15 @@ function Editor(node, shadow = null) {
         this.selection.removeAllRanges();
         this.selection.addRange(this.range);
         this.range.collapse(true);
+      }else if (!this.node.firstChild) {
+        const textNode = document.createTextNode('\u2009')
+        const paragraph = document.createElement("p");
+        this.node.appendChild(paragraph)
+        paragraph.appendChild(textNode);
       }
     });
     this.node.addEventListener("keydown", (e) => {
+      //console.log(e.key)
       if (e.key == "Enter") {
         e.preventDefault();
 
@@ -95,10 +106,11 @@ function Editor(node, shadow = null) {
 
           // Create a new paragraph for the after content
           const newParagraph = document.createElement("p");
-          if (afterContent.firstChild.innerHTML) {
+          if (afterContent.firstChild.textContent) {
+            console.log(afterContent.firstChild.innerHTML)
             copyChildNodes(afterContent.firstChild, newParagraph);
           } else {
-            newParagraph.appendChild(document.createElement("br"));
+            newParagraph.appendChild(document.createElement('br'));
           }
 
           // Insert the new paragraph after the current one
@@ -112,12 +124,14 @@ function Editor(node, shadow = null) {
           // Move the cursor to the new paragraph
           const newRange = document.createRange();
           newRange.selectNodeContents(newParagraph);
-          newRange.collapse(true); // Set cursor at the start of the new paragraph
+          newRange.setStart(newParagraph, 1)
+          newRange.setEnd(newParagraph, 1)
           this.selection.removeAllRanges();
           this.selection.addRange(newRange);
         } else {
           // If not inside a paragraph, insert the new paragraph at the current position
           const newParagraph = document.createElement("p");
+          console.log(newParagraph)
           newParagraph.innerHTML = "<br>";
           this.range.insertNode(newParagraph);
           const newRange = document.createRange();
@@ -135,6 +149,16 @@ function Editor(node, shadow = null) {
             composed: true,
           })
         );
+      }
+      if (e.key === "Backspace") {
+        const childs = Array.from(this.node.childNodes)
+        if(childs.length == 1) {
+          if(childs[0].tagName === "P") {
+            if (!childs[0].innerText.trim()) {
+              e.preventDefault()
+            }
+          }
+        }
       }
     });
   };
@@ -181,7 +205,7 @@ function Editor(node, shadow = null) {
   };
 
   this.setText = function (text) {
-    this.node.innerHTML = text || "<p>&thinsp</p>";
+    this.node.innerHTML = text || "<p><br></p>";
 
     html2Editor(this.node);
 
@@ -375,10 +399,10 @@ function Editor(node, shadow = null) {
         img.setAttribute("src", url);
         img.setAttribute("width", 300);
         img.setAttribute("height", 300);
-        self.range.insertNode(img);
+        this.range.insertNode(img);
         this.range.setStartAfter(img);
         this.range.collapse(true);
-        self.range.insertNode(space);
+        this.range.insertNode(space);
         this.node.dispatchEvent(
           new Event("input", {
             bubbles: true,
@@ -404,7 +428,11 @@ function Editor(node, shadow = null) {
             })
           );
         });
-      } catch (e) {}
+      } catch (e) {
+        console.log(e)
+      }
+    } else {
+      console.log('no')
     }
   };
 

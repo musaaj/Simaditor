@@ -1,6 +1,7 @@
 import "katex/dist/katex.min.css"
 import "katex/dist/contrib/mhchem.js"
 import katex from "katex";
+import "mathlive"
 
 function renderLatexToString(latexString) {
   try {
@@ -44,27 +45,55 @@ class LatexRenderer extends HTMLElement {
         }, 0);
     });
 
+    this.mathElement = document.createElement('math-field');
+    this.mathElement.style.display = 'none'
+    this.mathElement.style.position = "relative";
+    this.mathElement.addEventListener('input', ()=>{
+      this.setAttribute('value', this.mathElement.getValue('latex'))
+    })
+
     // Create container for rendering
     this.renderContainer = document.createElement("span");
     this.renderContainer.style.display = "inline-block";
     this.renderContainer.style.position = "relative";
+   
     this.renderContainer.addEventListener("click", (e) => {
       e.stopPropagation(); // Prevent propagation to the document
       this.button.style.display = "inline";
+      this.mathElement.style.display = 'inline-block'
+      this.renderContainer.style.display = 'none'
     });
   }
 
   connectedCallback() {
     // Append elements when the custom element is connected to the DOM
     this.appendChild(this.renderContainer);
+    this.appendChild(this.mathElement);
     this.renderContainer.appendChild(this.button);
 
     // Render the LaTeX content
     this.renderLatex();
-
+    this.mathElement.innerHTML = this.getAttribute('value')
     // Global click listener to hide button
     this.hideButtonOutside = this.hideButtonOutside.bind(this);
-    document.addEventListener("click", this.hideButtonOutside);
+    document.addEventListener("click", (e)=>{
+      if(!this.clickWithin(e.target)) {
+        this.hideButtonOutside(e)
+      }
+      console.log(e.target)
+      //
+    });
+  }
+
+  clickWithin(el){
+    if (el.getAttribute('tabIndex') == -1) return true;
+    if (el.getAttribute('role') == 'toolbar') return true;
+    if (el.className === 'MLK__plate') return true;
+    while(el && el.parentNode && el != this){
+      el = el.parentNode
+      if (el == this) return true
+    }
+    return false
   }
 
   disconnectedCallback() {
@@ -101,6 +130,8 @@ class LatexRenderer extends HTMLElement {
   hideButtonOutside(event) {
     if (!this.contains(event.target)) {
       this.button.style.display = "none";
+      this.mathElement.style.display = 'none'
+      this.renderContainer.style.display = 'inline-block'
     }
   }
   get string(){
