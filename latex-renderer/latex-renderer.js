@@ -31,6 +31,7 @@ class LatexRenderer extends HTMLElement {
     this.button.style.color = "white";
     this.button.style.cursor = "pointer";
     this.button.style.fontSize = "14px";
+    this.button.style.zIndex = 100;
     this.button.addEventListener("click", (e) => {
       //e.stopPropagation(); // Prevent propagation to the document
       this.remove();
@@ -47,7 +48,6 @@ class LatexRenderer extends HTMLElement {
 
     this.mathElement = document.createElement('math-field');
     this.mathElement.style.display = 'none'
-    this.mathElement.style.position = "relative";
     this.mathElement.addEventListener('input', ()=>{
       this.setAttribute('value', this.mathElement.getValue('latex'))
     })
@@ -59,42 +59,29 @@ class LatexRenderer extends HTMLElement {
    
     this.renderContainer.addEventListener("click", (e) => {
       e.stopPropagation(); // Prevent propagation to the document
-      this.button.style.display = "inline";
+      
       this.mathElement.style.display = 'inline-block'
       this.renderContainer.style.display = 'none'
+      this.button.style.display = "inline";
     });
   }
 
   connectedCallback() {
+    this.style.position = 'relative';
     // Append elements when the custom element is connected to the DOM
     this.appendChild(this.renderContainer);
     this.appendChild(this.mathElement);
-    this.renderContainer.appendChild(this.button);
+    this.appendChild(this.button);
 
     // Render the LaTeX content
     this.renderLatex();
     this.mathElement.innerHTML = this.getAttribute('value')
     // Global click listener to hide button
     this.hideButtonOutside = this.hideButtonOutside.bind(this);
-    document.addEventListener("click", (e)=>{
-      if(!this.clickWithin(e.target)) {
-        this.hideButtonOutside(e)
-      }
-      console.log(e.target)
-      //
-    });
+    document.addEventListener("click", (e)=>this.hideButtonOutside(e));
   }
 
-  clickWithin(el){
-    if (el.getAttribute('tabIndex') == -1) return true;
-    if (el.getAttribute('role') == 'toolbar') return true;
-    if (el.className === 'MLK__plate') return true;
-    while(el && el.parentNode && el != this){
-      el = el.parentNode
-      if (el == this) return true
-    }
-    return false
-  }
+
 
   disconnectedCallback() {
     // Clean up the global event listener
@@ -130,7 +117,6 @@ class LatexRenderer extends HTMLElement {
   hideButtonOutside(event) {
     if (!this.contains(event.target)) {
       this.button.style.display = "none";
-      this.mathElement.style.display = 'none'
       this.renderContainer.style.display = 'inline-block'
     }
   }
