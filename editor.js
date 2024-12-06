@@ -478,57 +478,26 @@ function Editor(node, shadow = null) {
    */
   this.insertMathML = function () {
     this.setSelection();
-    // Create the modal box
-    const modal = document.createElement("div");
-    modal.style.position = "fixed";
-    modal.style.top = "30%";
-    modal.style.left = "50%";
-    modal.style.transform = "translate(-50%, -50%)";
-    modal.style.zIndex = 1000;
-    modal.style.backgroundColor = "#fff";
-    modal.style.border = "1px solid #ccc";
-    modal.style.padding = "20px";
-    modal.style.boxShadow = "0 2px 10px rgba(0, 0, 0, 0.1)";
-    modal.style.width = "200px";
 
-    // Create Mathlive input element
-    const mathInput = document.createElement("math-field");
-    mathInput.style.width = "100%";
-    mathInput.style.height = "50pt";
-    mathInput.style.marginBottom = "10px";
-    modal.appendChild(mathInput);
-
-    // Create insert button
-    const insertButton = document.createElement("button");
-    insertButton.textContent = "Insert";
-    modal.appendChild(insertButton);
-
-    // Create cancel button
-    const cancelButton = document.createElement("button");
-    cancelButton.textContent = "Cancel";
-    cancelButton.style.marginLeft = "10px";
-    modal.appendChild(cancelButton);
-
-    // Append modal to the document body
-    document.body.appendChild(modal);
-
-    // Event listener for the insert button
-    insertButton.addEventListener("click", () => {
-      const mathML = mathInput.getValue("latex");
-      const space = document.createTextNode("\u2009");
-      const mathElement = document.createElement("latex-renderer");
-      if (mathML) {
-        // Insert the MathML at the current cursor position
-
-        if (
-          this.selection &&
-          this.selection.anchorOffset === this.selection.focusOffset
-        ) {
-          mathElement.setAttribute("value", mathML);
-          this.range.insertNode(mathElement);
-          this.range.setStartAfter(mathElement);
-          this.range.collapse(true);
-          this.range.insertNode(space);
+    const space = document.createTextNode("\u2009");
+    const mathElement = document.createElement("latex-renderer");
+      if (
+        this.selection &&
+        this.selection.anchorOffset === this.selection.focusOffset
+      ) {
+        this.range.insertNode(mathElement);
+        this.range.setStartAfter(mathElement);
+        this.range.collapse(true);
+        this.range.insertNode(space);
+        mathElement.focus();
+        this.node.dispatchEvent(
+          new Event("input", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        );
+        mathElement.addEventListener("removed", () => {
           this.node.dispatchEvent(
             new Event("input", {
               bubbles: true,
@@ -536,26 +505,9 @@ function Editor(node, shadow = null) {
               composed: true,
             })
           );
-          mathElement.addEventListener("removed", () => {
-            this.node.dispatchEvent(
-              new Event("input", {
-                bubbles: true,
-                cancelable: true,
-                composed: true,
-              })
-            );
-          });
-        }
+        });
       }
-      // Remove the modal after inserting
-      document.body.removeChild(modal);
-      //mathElement.connectedCallback()
-    });
-
-    // Event listener for the cancel button
-    cancelButton.addEventListener("click", () => {
-      document.body.removeChild(modal);
-    });
+  return
   };
 
   this.inserSymbol = function () {
