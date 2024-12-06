@@ -56,12 +56,11 @@ class LatexRenderer extends HTMLElement {
     this.renderContainer = document.createElement("span");
     this.renderContainer.style.display = "inline-block";
     this.renderContainer.style.position = "relative";
+    this.renderContainer.contentEditable = false;
    
     this.renderContainer.addEventListener("click", (e) => {
       e.stopPropagation(); // Prevent propagation to the document
       
-      this.mathElement.style.display = 'inline-block'
-      this.renderContainer.style.display = 'none'
       this.button.style.display = "inline";
     });
   }
@@ -70,7 +69,6 @@ class LatexRenderer extends HTMLElement {
     this.style.position = 'relative';
     // Append elements when the custom element is connected to the DOM
     this.appendChild(this.renderContainer);
-    this.appendChild(this.mathElement);
     this.appendChild(this.button);
 
     // Render the LaTeX content

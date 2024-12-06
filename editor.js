@@ -525,7 +525,6 @@ function Editor(node, shadow = null) {
           this.selection.anchorOffset === this.selection.focusOffset
         ) {
           mathElement.setAttribute("value", mathML);
-          mathElement.contentEditable = false;
           this.range.insertNode(mathElement);
           this.range.setStartAfter(mathElement);
           this.range.collapse(true);
