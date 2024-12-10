@@ -19,7 +19,6 @@ class LatexRenderer extends HTMLElement {
     super();
 
     this.mathElement = document.createElement('math-field');
-    //this.mathElement.style.display = 'none'
     this.mathElement.addEventListener('keydown', e=>{
       e.stopPropagation();
       if(e.key === 'Enter') {
@@ -39,8 +38,9 @@ class LatexRenderer extends HTMLElement {
     this.renderContainer.addEventListener("click", (e) => {
       e.stopPropagation(); // Prevent propagation to the document
       this.renderContainer.style.display = 'none'
-      this.toolbar.style.display = 'inline-block'
+      this.toolbar.style.display = 'inline-flex'
       this.mathElement.style.display = 'inline-block'
+      this.mathElement.focus();
     });
   }
 
@@ -57,6 +57,7 @@ class LatexRenderer extends HTMLElement {
 
     // Render the LaTeX content
     this.renderLatex();
+    this.mathElement.focus()
     this.mathElement.innerHTML = this.getAttribute('value')
     // Global click listener to hide button
   }
@@ -69,10 +70,12 @@ class LatexRenderer extends HTMLElement {
         display: inline-block;
      }
      .latex-renderer > .tool-bar {
-        display: inline-block;
+        display: inline-flex;
         position: absolute;
         left: 0px;
         bottom: 0px;
+        width: 100%;
+        min-width: 100px;
         transform: translate(0%, 100%);
       }
       .latex-renderer > .tool-bar > button {
@@ -81,6 +84,7 @@ class LatexRenderer extends HTMLElement {
         outline: none;
         margin: 1pt;
         cursor: pointer;
+        width: 100%;
       }
     `
     return style

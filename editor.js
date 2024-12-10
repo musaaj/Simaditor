@@ -50,6 +50,7 @@ function Editor(node, shadow = null) {
    * Initializes the editor by setting the contentEditable property and adding default content.
    */
   this.init = function () {
+    this.nomalize()
     this.node.contentEditable = true;
     this.node.addEventListener("input", () => {
       if (this.node.firstChild && this.node.firstChild.tagName != "P") {
@@ -91,7 +92,20 @@ function Editor(node, shadow = null) {
 
         this.selection = window.getSelection();
         this.range = this.selection.getRangeAt(0);
+        if (this.selection.isCollapsed && this.selection.focusOffset === 0){
+          const newParagraph = document.createElement('p')
+          newParagraph.appendChild(document.createElement('br'))
+          this.node.insertBefore(newParagraph, this.getSelectionParagraph())
+          this.node.dispatchEvent(
+          new Event("input", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        );
 
+          return 
+        }
         const startContainer =
           this.range.startContainer.nodeType === Node.TEXT_NODE
             ? this.range.startContainer.parentElement
@@ -124,8 +138,8 @@ function Editor(node, shadow = null) {
           // Move the cursor to the new paragraph
           const newRange = document.createRange();
           newRange.selectNodeContents(newParagraph);
-          newRange.setStart(newParagraph, 1)
-          newRange.setEnd(newParagraph, 1)
+          newRange.setStart(newParagraph, 0)
+          newRange.setEnd(newParagraph, 0)
           this.selection.removeAllRanges();
           this.selection.addRange(newRange);
         } else {
@@ -163,6 +177,16 @@ function Editor(node, shadow = null) {
     });
   };
 
+  this.getSelectionParagraph = function() {
+    let anchorNode = this.selection.anchorNode.parentNode;
+    do {
+      if (anchorNode.tagName === 'P') return anchorNode;
+      if (anchorNode === this.node) return null;
+      anchorNode = anchorNode.parentNode
+    } while(anchorNode.tagName != 'P')
+    return anchorNode;
+  }
+
   /**
    * Checks if the current selection is within the editor node.
    * @returns {boolean} True if the selection is within the editor, false otherwise.
@@ -171,6 +195,7 @@ function Editor(node, shadow = null) {
     const selection = root.getSelection();
     if (selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
+      if(range.startContainer.tagName === 'LATEX-RENDERER') return false;
       return this.node.contains(range.commonAncestorContainer);
     }
     return false;
@@ -208,6 +233,7 @@ function Editor(node, shadow = null) {
     this.node.innerHTML = text || "<p><br></p>";
 
     html2Editor(this.node);
+    this.nomalize()
 
     const resizableImages = this.node.querySelectorAll("resizable-img");
     const latexRenderers = this.node.querySelectorAll("latex-renderer");
@@ -244,6 +270,17 @@ function Editor(node, shadow = null) {
       });
     });
   };
+
+  this.nomalize = function(){
+    const childNodes = Array.from(this.node.childNodes);
+    childNodes.forEach(node=>{
+      if (node.nodeType === Node.TEXT_NODE || node.tagName != 'P'){
+        const paragraph = document.createElement('p')
+        this.node.replaceChild(paragraph, node)
+        paragraph.appendChild(node)
+      }
+    })
+  }
 
   /**
    * Formats the selected text with a specified inline tag (e.g., <b>, <i>, <u>).

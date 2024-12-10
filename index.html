@@ -12,15 +12,18 @@
   </head>
   <body>
     <div>
-      <rich-textarea id="editor" value="A file kept in case of an accident or natural disaster is called"></rich-textarea>
+      <rich-textarea
+        id="editor"
+        value="A file kept in case of an accident or natural disaster is called"
+      ></rich-textarea>
       <div id="preview">Hello</div>
     </div>
     <script>
       const editor = document.getElementById("editor");
       const preview = document.getElementById("preview");
-      preview.innerHTML = editor.getAttribute("value"); 
+      preview.textContent = editor.getAttribute("value");
       editor.addEventListener("input", (e) => {
-        preview.innerHTML = editor.getAttribute("value");
+        preview.textContent = editor.getAttribute("value");
       });
     </script>
   </body>
