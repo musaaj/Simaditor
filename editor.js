@@ -41,7 +41,7 @@ function Editor(node, shadow = null) {
    * Initializes the editor by setting the contentEditable property and adding default content.
    */
   this.init = function () {
-    this.nomalize()
+    this.normalize()
     this.node.contentEditable = true;
     this.node.addEventListener("input", () => {
       if (this.node.firstChild && this.node.firstChild.tagName != "P") {
@@ -235,7 +235,7 @@ function Editor(node, shadow = null) {
     this.node.innerHTML = text || "<p><br></p>";
 
     html2Editor(this.node);
-    this.nomalize()
+    this.normalize()
 
     const resizableImages = this.node.querySelectorAll("resizable-img");
     const latexRenderers = this.node.querySelectorAll("latex-renderer");
@@ -273,7 +273,7 @@ function Editor(node, shadow = null) {
     });
   };
 
-  this.nomalize = function(){
+  this.normalize = function(){
     const childNodes = Array.from(this.node.childNodes);
     childNodes.forEach(node=>{
       if (node.nodeType === Node.TEXT_NODE || node.tagName != 'P'){

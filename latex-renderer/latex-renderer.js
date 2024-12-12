@@ -4,6 +4,7 @@ import katex from "katex";
 import "mathlive"
 
 function renderLatexToString(latexString) {
+  if (!latexString) return "";
   try {
     return katex.renderToString(latexString, {
       throwOnError: false, // Prevent errors from being thrown for invalid LaTeX
@@ -36,11 +37,8 @@ class LatexRenderer extends HTMLElement {
     this.renderContainer.contentEditable = false;
    
     this.renderContainer.addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent propagation to the document
-      this.renderContainer.style.display = 'none'
-      this.toolbar.style.display = 'inline-flex'
-      this.mathElement.style.display = 'inline-block'
-      this.mathElement.focus();
+      e.stopPropagation();
+      this.showToolbar()
     });
   }
 
@@ -70,6 +68,7 @@ class LatexRenderer extends HTMLElement {
         display: inline-block;
      }
      .latex-renderer > .tool-bar {
+        width: 100%;
         display: inline-flex;
         position: absolute;
         left: 0px;
@@ -141,9 +140,15 @@ class LatexRenderer extends HTMLElement {
   }
 
   hideToolbar() {
-    this.toolbar.style.display = 'none';
     this.mathElement.style.display = 'none'
+    this.removeChild(this.toolbar)
     this.renderContainer.style.display = 'inline-block'
+  }
+
+  showToolbar() {
+    this.renderContainer.style.display = 'none'
+    this.mathElement.style.display = 'inline-block'
+    this.appendChild(this.toolbar)
   }
 
   delete(){

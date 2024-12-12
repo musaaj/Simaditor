@@ -53,6 +53,7 @@ function replaceWithLatexRenderer(parent, span) {
     latexRenderer.setAttribute("value", latexValue);
     latexRenderer.setAttribute('contentEditable', false)
     parent.replaceChild(latexRenderer, span);
+    latexRenderer.hideToolbar()
 }
 
 export default html2Editor;

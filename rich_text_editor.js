@@ -21,6 +21,7 @@ class RichTextEditor extends HTMLElement {
     this.editor.setText(value)
     this.editorPane.focus();
     this.editorPane.addEventListener('input', this._emitInputEvent.bind(this))
+    this.addEventListener('input', this._emitChangeEvent.bind(this))
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -136,6 +137,18 @@ class RichTextEditor extends HTMLElement {
     this.setAttribute('value', this.editor.getText())
     this.dispatchEvent(event)
   }
+
+  _emitChangeEvent(){
+    const event = new Event('change', {
+      bubbles: true,
+      cancelable: true,
+      composed: true
+    })
+
+    this.setAttribute('value', this.editor.getText())
+    this.dispatchEvent(event)
+  }
+
 
   syncProperties() {
     for (const attr of RichTextEditor.observedAttributes) {
