@@ -19,7 +19,7 @@ function processLatexRenderer(node) {
 }
 
 function processTag(node) {
-    if (node.tagName === 'BR') return ''
+    if (node.tagName === 'BR') return '<br/>'
     return `<${node.tagName.toLowerCase()}>${process(node.childNodes)}</${node.tagName.toLowerCase()}>`
 }
 

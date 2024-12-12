@@ -50,6 +50,19 @@ class RichTextEditor extends HTMLElement {
       border: none;
       padding: 8pt;
     }
+    .rich-container > .editor-area > p {
+        font-family: serif;
+        font-size: 1.125rem;
+        line-height: 1.6;
+        color: #333;
+        margin: 1em 0;
+        text-align: left;
+        letter-spacing: 0.1em;
+        word-spacing: 0.1em;
+    }
+    .rich-container > .editor-area img{
+      display: inline-block;
+    }
     .rich-container > .toolbar {
       display: flex;
       border-bottom: 1px solid #efefef;
@@ -65,6 +78,11 @@ class RichTextEditor extends HTMLElement {
     }
     .rich-container > .toolbar > button:hover {
       background-color: #f8f8f8;
+    }
+    @media(max-width: 768px){
+      .rich-container > .editor-area > p {
+        font-size: 1em;
+      }
     }
     `
     return style;

@@ -13,15 +13,6 @@ customElements.define("latex-renderer", LatexRenderer);
 customElements.define("resizable-img", ResizableImage);
 customElements.define("symbol-picker", SymbolPicker);
 
-function wrapFirstPartWithP(htmlString) {
-  const firstPIndex = htmlString.indexOf("<p>");
-  const endIndex = firstPIndex === -1 ? htmlString.length : firstPIndex;
-
-  const wrappedString =
-    "<p>" + htmlString.slice(0, endIndex) + "</p>" + htmlString.slice(endIndex);
-
-  return wrappedString;
-}
 
 function copyChildNodes(sourceElement, destinationElement) {
   if (
@@ -93,9 +84,21 @@ function Editor(node, shadow = null) {
         this.selection = window.getSelection();
         this.range = this.selection.getRangeAt(0);
         if (this.selection.isCollapsed && this.selection.focusOffset === 0){
+          const oldParagraph = this.getSelectionParagraph();
           const newParagraph = document.createElement('p')
           newParagraph.appendChild(document.createElement('br'))
-          this.node.insertBefore(newParagraph, this.getSelectionParagraph())
+          if (oldParagraph) {
+            this.node.insertBefore(newParagraph, oldParagraph)
+          } else {
+            this.node.appendChild(newParagraph);
+            const newRange = document.createRange();
+            newRange.selectNodeContents(newParagraph);
+            newRange.setStart(newParagraph, 0)
+            newRange.setEnd(newParagraph, 0)
+            this.selection.removeAllRanges();
+            this.selection.addRange(newRange);
+
+          }
           this.node.dispatchEvent(
           new Event("input", {
             bubbles: true,
@@ -121,7 +124,6 @@ function Editor(node, shadow = null) {
           // Create a new paragraph for the after content
           const newParagraph = document.createElement("p");
           if (afterContent.firstChild.textContent) {
-            console.log(afterContent.firstChild.innerHTML)
             copyChildNodes(afterContent.firstChild, newParagraph);
           } else {
             newParagraph.appendChild(document.createElement('br'));

@@ -1,7 +1,7 @@
 {
   "name": "simaditor",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,5 +14,6 @@
   "dependencies": {
     "katex": "^0.16.11",
     "mathlive": "^0.101.2"
-  }
+  },
+  "packageManager": "yarn@4.5.3"
 }
