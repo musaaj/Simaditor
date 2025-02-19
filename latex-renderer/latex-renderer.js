@@ -1,7 +1,10 @@
 import "katex/dist/katex.min.css"
-import "katex/dist/contrib/mhchem.js"
 import katex from "katex";
+import 'katex/contrib/mhchem'
+import {renderMathInElement} from 'mathlive'
 import "mathlive"
+import { MathfieldElement } from "mathlive";
+import virtualKeyboard from "./keyboard";
 
 function renderLatexToString(latexString) {
   if (!latexString) return "";
@@ -15,15 +18,19 @@ function renderLatexToString(latexString) {
   }
 }
 
+window.mathVirtualKeyboard.layouts = virtualKeyboard;
+
 class LatexRenderer extends HTMLElement {
   constructor() {
     super();
 
-    this.mathElement = document.createElement('math-field');
+    this.mathElement = new MathfieldElement()
     this.mathElement.addEventListener('keydown', e=>{
       e.stopPropagation();
       if(e.key === 'Enter') {
         e.preventDefault();
+        this.hideToolbar();
+        return false;
       }
     })
     this.mathElement.addEventListener('input', ()=>{
@@ -57,7 +64,6 @@ class LatexRenderer extends HTMLElement {
     this.renderLatex();
     this.mathElement.focus()
     this.mathElement.innerHTML = this.getAttribute('value')
-    // Global click listener to hide button
   }
 
   createStyle() {
@@ -128,14 +134,11 @@ class LatexRenderer extends HTMLElement {
 
   renderLatex() {
     const value = this.getAttribute("value") || "";
-    this.renderContainer.innerHTML = ""; // Clear previous rendering
+    this.renderContainer.innerHTML = `\\(${value}\\)`;
     try {
-      katex.render(value, this.renderContainer, {
-        throwOnError: false,
-      });
+      renderMathInElement(this.renderContainer, {throwOnError:true})
     } catch (error) {
-      console.error("KaTeX render error:", error);
-      this.renderContainer.textContent = value; // Fallback to plain text
+      console.log('Katex error', error)
     }
   }
 
@@ -148,13 +151,13 @@ class LatexRenderer extends HTMLElement {
   showToolbar() {
     this.renderContainer.style.display = 'none'
     this.mathElement.style.display = 'inline-block'
+    this.mathElement.focus();
     this.appendChild(this.toolbar)
   }
 
   delete(){
     this.remove();
     setTimeout(() => {
-        // Dispatch the event after removal
         const removedEvent = new CustomEvent('removed', {
           bubbles: true,
           cancelable: false,
@@ -165,7 +168,7 @@ class LatexRenderer extends HTMLElement {
   }
 
   get string(){
-    return renderLatexToString(this.getAttribute('value'))
+    return this.renderContainer.innerHTML || '';
   }
 }
 

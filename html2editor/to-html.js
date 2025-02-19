@@ -24,7 +24,6 @@ function processTag(node) {
 }
 
 function processDiv(node) {
-    console.log('div')
     return `<p>${process(node.childNodes)}</p>`
 }
 

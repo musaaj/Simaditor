@@ -9,302 +9,304 @@ import { html2Editor, process } from "./html2editor/index.js";
 import "mathlive";
 import "./node_modules/mathlive/dist/mathlive-static.css";
 import "katex/dist/katex.min.css";
+
 customElements.define("latex-renderer", LatexRenderer);
 customElements.define("resizable-img", ResizableImage);
 customElements.define("symbol-picker", SymbolPicker);
 
-
 function copyChildNodes(sourceElement, destinationElement) {
-  if (
-    !(sourceElement instanceof HTMLElement) ||
-    !(destinationElement instanceof HTMLElement)
-  ) {
-    throw new Error(
-      "Both sourceElement and destinationElement must be valid HTML elements."
-    );
+  if (!(sourceElement instanceof HTMLElement) || !(destinationElement instanceof HTMLElement)) {
+    throw new Error("Both sourceElement and destinationElement must be valid HTML elements.");
   }
-
-  // Clone each child node from the source element
   sourceElement.childNodes.forEach((node) => {
-    // Append a deep clone of the node to the destination element
     destinationElement.appendChild(node.cloneNode(true));
   });
 }
 
-function Editor(node, shadow = null) {
-  this.selection = null;
-  this.range = null;
-  this.node = node;
-  const root = shadow || document;
-
-  /**
-   * Initializes the editor by setting the contentEditable property and adding default content.
-   */
-  this.init = function () {
-    this.normalize()
+class Editor {
+  constructor(node, shadow = null) {
+    this.selection = null;
+    this.range = null;
+    this.node = node;
+    this.root = shadow || document;
+    this.changeListeners = [];
+    this.init();
+  }
+  addChangeListener(callback) {
+    this.changeListeners.push(callback);
+  }
+  dispatchChangeEvent() {
+    this.changeListeners.forEach(callback => callback && callback(this));
+  }
+  init() {
+    this.normalize();
     this.node.contentEditable = true;
-    this.node.addEventListener("input", () => {
-      if (this.node.firstChild && this.node.firstChild.tagName != "P") {
-        const textNode = this.node.firstChild;
-        const paragraph = document.createElement("p");
-        this.node.replaceChild(paragraph, textNode);
-        paragraph.appendChild(textNode);
-      } else if (!this.node.firstChild) {
-        const textNode = document.createTextNode('\u2009')
-        const paragraph = document.createElement("p");
-        this.node.appendChild(paragraph)
-        paragraph.appendChild(textNode);
+    this.node.addEventListener("input", this.handleInput.bind(this));
+    this.node.addEventListener("focus", this.handleFocus.bind(this));
+    this.node.addEventListener("keydown", this.handleKeydown.bind(this));
+  }
+  handleInput(e) {
+    e.stopPropagation();
+    if (this.node.firstChild && this.node.firstChild.tagName !== "P") {
+      this.wrapFirstChildInParagraph();
+    } else if (!this.node.firstChild) {
+      this.createEmptyParagraph();
+    }
+    this.dispatchChangeEvent();
+    return false;
+  }
+  handleFocus() {
+    if (this.node.firstChild && this.node.firstChild.tagName !== "P") {
+      this.wrapFirstChildInParagraph();
+      this.setSelection();
+      this.range = new Range();
+      this.range.setStart(this.node.firstChild, 1);
+      this.range.setEnd(this.node.firstChild, 1);
+      this.selection.removeAllRanges();
+      this.selection.addRange(this.range);
+      this.range.collapse(true);
+    } else if (!this.node.firstChild) {
+      this.createEmptyParagraph();
+    }
+  }
+  handleKeydown(e) {
+    if (e.key === "Enter") {
+      this.handleEnterKey(e);
+    } else if (e.key === "Backspace") {
+      this.handleBackspaceKey(e);
+    }
+    this.dispatchChangeEvent();
+  }
+  handleEnterKey(e) {
+    e.preventDefault();
+    this.selection = window.getSelection();
+    this.range = this.selection.getRangeAt(0);
+
+    if (this.selection.isCollapsed && this.selection.focusOffset === 0) {
+      this.handleCollapsedSelection();
+      return;
+    }
+
+    const startContainer = this.range.startContainer.nodeType === Node.TEXT_NODE
+      ? this.range.startContainer.parentElement
+      : this.range.startContainer;
+    const parentParagraph = startContainer.closest("p");
+
+    if (parentParagraph) {
+      this.splitParagraph(parentParagraph);
+    } else {
+      this.insertNewParagraphAtCurrentPosition();
+    }
+
+    this.dispatchChangeEvent();
+  }
+  reflow(paragraph) {
+    const resizableImages = paragraph.querySelectorAll('resizable-img');
+    Array.from(resizableImages).forEach(img => {
+      const newImg = new ResizableImage();
+      newImg.setAttribute('src', img.getAttribute('src'));
+      newImg.setAttribute('width', img.getAttribute('width'));
+      newImg.setAttribute('height', img.getAttribute('height'));
+      try {
+        paragraph.replaceChild(newImg, img);
+      } catch (e) {
+        console.log(e);
       }
+      newImg.addEventListener('resize', () => this.dispatchChangeEvent());
+      newImg.addEventListener('removed', () => this.dispatchChangeEvent());
     });
-    this.node.addEventListener("focus", () => {
-      if (this.node.firstChild &&this.node.firstChild.tagName != "P") {
-        const textNode = this.node.firstChild;
-        const paragraph = document.createElement("p");
-        this.node.replaceChild(paragraph, textNode);
-        paragraph.appendChild(textNode);
-        this.setSelection();
-        this.range = new Range();
-        this.range.setStart(paragraph, 1);
-        this.range.setEnd(paragraph, 1);
+
+    const latexRenderers = paragraph.querySelectorAll('latex-renderer');
+    Array.from(latexRenderers).forEach(latex => {
+      const newLatex = new LatexRenderer();
+      newLatex.setAttribute('value', latex.getAttribute('value'));
+      latex.parentNode.replaceChild(newLatex, latex);
+      newLatex.hideToolbar();
+      newLatex.addEventListener('removed', () => this.dispatchChangeEvent());
+    });
+  }
+  handleBackspaceKey(e) {
+    this.setSelection();
+    const paragraph = this.getPifSelectionAtBeginning(this.range.startContainer);
+    const childs = Array.from(this.node.childNodes);
+    if (paragraph === this.node.firstChild && this.range.startOffset === 0) {
+      e.preventDefault();
+      return false;
+    }
+    if (this.selection.isCollapsed) {
+      if (paragraph
+        && this.range.startOffset == 0
+        && this.range.startOffset == 0) {
+        e.preventDefault();
+        const previousSibling = paragraph.previousSibling;
+        const lastChild = previousSibling.lastChild;
+        copyChildNodes(paragraph, previousSibling);
+        paragraph.parentElement.removeChild(paragraph);
+        this.reflow(previousSibling);
+        this.range.selectNodeContents(lastChild);
+        this.range.collapse(false);
         this.selection.removeAllRanges();
         this.selection.addRange(this.range);
-        this.range.collapse(true);
-      }else if (!this.node.firstChild) {
-        const textNode = document.createTextNode('\u2009')
-        const paragraph = document.createElement("p");
-        this.node.appendChild(paragraph)
-        paragraph.appendChild(textNode);
       }
-    });
-    this.node.addEventListener("keydown", (e) => {
-      //console.log(e.key)
-      if (e.key == "Enter") {
-        e.preventDefault();
+    }
+  }
+  getPifSelectionAtBeginning(element) {
+    if (element === this.node)
+      return null;
+    if (element.nodeType === Node.TEXT_NODE) {
+      return this.getPifSelectionAtBeginning(element.parentNode);
+    }
+    if (element.tagName === 'P') return element;
+    const parent = element.parentNode;
+    if (!parent.firstChild.textContent)
+      return this.getPifSelectionAtBeginning(parent);
+    if (parent.firstChild == element)
+      return this.getPifSelectionAtBeginning(parent);
+    return null;
+  }
+  handleCollapsedSelection() {
+    const oldParagraph = this.getSelectionParagraph();
+    const newParagraph = document.createElement("p");
+    newParagraph.appendChild(document.createElement("br"));
 
-        this.selection = window.getSelection();
-        this.range = this.selection.getRangeAt(0);
-        if (this.selection.isCollapsed && this.selection.focusOffset === 0){
-          const oldParagraph = this.getSelectionParagraph();
-          const newParagraph = document.createElement('p')
-          newParagraph.appendChild(document.createElement('br'))
-          if (oldParagraph) {
-            this.node.insertBefore(newParagraph, oldParagraph)
-          } else {
-            this.node.appendChild(newParagraph);
-            const newRange = document.createRange();
-            newRange.selectNodeContents(newParagraph);
-            newRange.setStart(newParagraph, 0)
-            newRange.setEnd(newParagraph, 0)
-            this.selection.removeAllRanges();
-            this.selection.addRange(newRange);
+    if (oldParagraph) {
+      this.node.insertBefore(newParagraph, oldParagraph);
+    } else {
+      this.node.appendChild(newParagraph);
+      this.setNewRange(newParagraph);
+    }
+    this.dispatchChangeEvent();
+  }
+  splitParagraph(parentParagraph) {
+    const splitRange = this.range.cloneRange();
+    splitRange.setEndAfter(parentParagraph);
+    const afterContent = splitRange.extractContents();
 
-          }
-          this.node.dispatchEvent(
-          new Event("input", {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          })
-        );
 
-          return 
-        }
-        const startContainer =
-          this.range.startContainer.nodeType === Node.TEXT_NODE
-            ? this.range.startContainer.parentElement
-            : this.range.startContainer;
+    const newParagraph = document.createElement("p");
+    if (afterContent.firstChild.textContent) {
+      copyChildNodes(afterContent.firstChild, newParagraph);
+    } else {
+      newParagraph.appendChild(document.createElement("br"));
+    }
 
-        const parentParagraph = startContainer.closest("p");
+    parentParagraph.after(newParagraph);
 
-        if (parentParagraph) {
-          const splitRange = this.range.cloneRange();
-          splitRange.setEndAfter(parentParagraph);
-          const afterContent = splitRange.extractContents(); // Get the content after the cursor
-
-          // Create a new paragraph for the after content
-          const newParagraph = document.createElement("p");
-          if (afterContent.firstChild.textContent) {
-            copyChildNodes(afterContent.firstChild, newParagraph);
-          } else {
-            newParagraph.appendChild(document.createElement('br'));
-          }
-
-          // Insert the new paragraph after the current one
-          parentParagraph.after(newParagraph);
-
-          const deleteRange = this.range.cloneRange();
-          deleteRange.setStart(this.range.endContainer, this.range.endOffset);
-          deleteRange.setEndAfter(parentParagraph);
-          deleteRange.deleteContents();
-
-          // Move the cursor to the new paragraph
-          const newRange = document.createRange();
-          newRange.selectNodeContents(newParagraph);
-          newRange.setStart(newParagraph, 0)
-          newRange.setEnd(newParagraph, 0)
-          this.selection.removeAllRanges();
-          this.selection.addRange(newRange);
-        } else {
-          // If not inside a paragraph, insert the new paragraph at the current position
-          const newParagraph = document.createElement("p");
-          console.log(newParagraph)
-          newParagraph.innerHTML = "<br>";
-          this.range.insertNode(newParagraph);
-          const newRange = document.createRange();
-          newRange.selectNodeContents(newParagraph);
-          this.range.setStartAfter(newParagraph, 0);
-          this.range.setEndAfter(newParagraph, 0);
-          newRange.collapse(false); // Set cursor at the start of the paragraph
-          this.selection.removeAllRanges();
-          this.selection.addRange(newRange);
-        }
-        this.node.dispatchEvent(
-          new Event("input", {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          })
-        );
-      }
-      if (e.key === "Backspace") {
-        const childs = Array.from(this.node.childNodes)
-        if(childs.length == 1) {
-          if(childs[0].tagName === "P") {
-            if (!childs[0].innerText.trim()) {
-              e.preventDefault()
-            }
-          }
-        }
-      }
-    });
-  };
-
-  this.getSelectionParagraph = function() {
+    this.deleteContentsAfterRange(parentParagraph);
+    this.reflow(newParagraph);
+    this.setNewRange(newParagraph);
+  }
+  insertNewParagraphAtCurrentPosition() {
+    const newParagraph = document.createElement("p");
+    newParagraph.innerHTML = "<br>&nbps;";
+    this.range.insertNode(newParagraph);
+    this.setNewRange(newParagraph);
+  }
+  setNewRange(element) {
+    const newRange = document.createRange();
+    newRange.selectNodeContents(element);
+    newRange.setStart(element, 0);
+    newRange.setEnd(element, 0);
+    newRange.collapse(false);
+    this.selection.removeAllRanges();
+    this.selection.addRange(newRange);
+  }
+  deleteContentsAfterRange(parentParagraph) {
+    const deleteRange = this.range.cloneRange();
+    deleteRange.setStart(this.range.endContainer, this.range.endOffset);
+    deleteRange.setEndAfter(parentParagraph);
+    deleteRange.deleteContents();
+  }
+  wrapFirstChildInParagraph() {
+    const textNode = this.node.firstChild;
+    const paragraph = document.createElement("p");
+    this.node.replaceChild(paragraph, textNode);
+    paragraph.appendChild(textNode);
+  }
+  createEmptyParagraph() {
+    const textNode = document.createTextNode('\u2009');
+    const paragraph = document.createElement("p");
+    paragraph.appendChild(textNode);
+    this.node.appendChild(paragraph);
+  }
+  getSelectionParagraph() {
     let anchorNode = this.selection.anchorNode.parentNode;
     do {
       if (anchorNode.tagName === 'P') return anchorNode;
       if (anchorNode === this.node) return null;
-      anchorNode = anchorNode.parentNode
-    } while(anchorNode.tagName != 'P')
+      anchorNode = anchorNode.parentNode;
+    } while (anchorNode.tagName !== 'P');
     return anchorNode;
   }
-
-  /**
-   * Checks if the current selection is within the editor node.
-   * @returns {boolean} True if the selection is within the editor, false otherwise.
-   */
-  this.isSelectionWithinEditor = function () {
-    const selection = root.getSelection();
+  isSelectionWithinEditor() {
+    const selection = this.root.getSelection();
     if (selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      if(range.startContainer.tagName === 'LATEX-RENDERER') return false;
+      if (range.startContainer.tagName === 'LATEX-RENDERER') return false;
       return this.node.contains(range.commonAncestorContainer);
     }
     return false;
-  };
-
-  /**
-   * Sets the current selection and range based on the user's selection in the document.
-   */
-  this.setSelection = function () {
+  }
+  setSelection() {
     if (this.isSelectionWithinEditor()) {
-      this.selection = root.getSelection();
+      this.selection = this.root.getSelection();
       this.range = document.createRange();
       try {
-        this.range.setStart(
-          this.selection.anchorNode,
-          this.selection.anchorOffset
-        );
+        this.range.setStart(this.selection.anchorNode, this.selection.anchorOffset);
         this.range.setEnd(this.selection.focusNode, this.selection.focusOffset);
-      } catch (e) {}
+      } catch (e) { }
     } else {
       this.selection = null;
       this.range = null;
     }
-  };
-
-  /**
-   * Retrieves the inner HTML content of the editor node.
-   * @returns {string} The inner HTML of the editor.
-   */
-  this.getText = function () {
+  }
+  getText() {
     return process(this.node.childNodes);
-  };
-
-  this.setText = function (text) {
+  }
+  setText(text) {
     this.node.innerHTML = text || "<p><br></p>";
-
     html2Editor(this.node);
-    this.normalize()
-
+    this.normalize();
+    this.addEventListenersToNodes();
+  }
+  addEventListenersToNodes() {
     const resizableImages = this.node.querySelectorAll("resizable-img");
     const latexRenderers = this.node.querySelectorAll("latex-renderer");
     resizableImages.forEach((node) => {
-      node.addEventListener("resize", () => {
-        this.node.dispatchEvent(
-          new Event("input", {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          })
-        );
-      });
-      node.addEventListener("removed", () => {
-        this.node.dispatchEvent(
-          new Event("input", {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          })
-        );
-      });
+      node.addEventListener("resize", this.dispatchChangeEvent.bind(this));
+      node.addEventListener("removed", this.dispatchChangeEvent.bind(this));
     });
-
     latexRenderers.forEach((node) => {
-      node.addEventListener("removed", () => {
-        this.node.dispatchEvent(
-          new Event("input", {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          })
-        );
-      });
+      node.addEventListener("removed", this.dispatchChangeEvent.bind(this));
     });
-  };
-
-  this.normalize = function(){
-    const childNodes = Array.from(this.node.childNodes);
-    childNodes.forEach(node=>{
-      if (node.nodeType === Node.TEXT_NODE || node.tagName != 'P'){
-        const paragraph = document.createElement('p')
-        this.node.replaceChild(paragraph, node)
-        paragraph.appendChild(node)
-      }
-    })
   }
-
-  /**
-   * Formats the selected text with a specified inline tag (e.g., <b>, <i>, <u>).
-   * @param {string} tagName - The tag name to apply to the selected text.
-   */
-  this.formatInline = function (tagName) {
+  normalize() {
+    const childNodes = Array.from(this.node.childNodes);
+    childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE || node.tagName !== 'P') {
+        const paragraph = document.createElement('p');
+        this.node.replaceChild(paragraph, node);
+        paragraph.appendChild(node);
+      }
+    });
+  }
+  formatInline(tagName) {
     this.setSelection();
-    if (this.hasFormat(tagName) == 0) {
+    if (this.hasFormat(tagName) === 0) {
       const el = document.createElement(tagName);
-      el.innerHTML = this.selection.toString();
-
+      el.innerHTML = this.selection.toString() || '&thinsp;';
       if (this.selection.focusOffset !== this.selection.anchorOffset) {
         this.selection.deleteFromDocument();
       }
-
       this.range.collapse(false);
       this.range.insertNode(el);
-
       this.selection.removeAllRanges();
       this.selection.addRange(this.range);
     }
-
+    this.removeFormat(tagName);
+    this.dispatchChangeEvent();
+  }
+  removeFormat(tagName) {
     for (let i = 1; i <= 3; i++) {
       if (this.hasFormat(tagName) === i) {
         let container = this.range.startContainer;
@@ -314,100 +316,48 @@ function Editor(node, shadow = null) {
         container.parentNode.replaceChild(container.firstChild, container);
       }
     }
-    //this.selection = null;
-    //this.range = null;
-    this.node.dispatchEvent(
-      new Event("input", { bubbles: true, cancelable: true, composed: true })
-    );
-  };
-
-  /**
-   * Applies bold formatting to the selected text.
-   */
-  this.bold = function () {
-    this.formatInline("b");
-  };
-
-  /**
-   * Applies italic formatting to the selected text.
-   */
-  this.italic = function () {
-    this.formatInline("i");
-  };
-
-  /**
-   * Applies underline formatting to the selected text.
-   */
-  this.underline = function () {
-    this.formatInline("u");
-  };
-
-  /**
-   * Applies superscript formatting to the selected text.
-   */
-  this.super = function () {
-    this.formatInline("sup");
-  };
-
-  /**
-   * Applies subscript formatting to the selected text.
-   */
-  this.sub = function () {
-    this.formatInline("sub");
-  };
-
-  /**
-   * Formats the selected block-level element with a specified tag (e.g., <h1>, <p>).
-   * @param {string} element - The tag name to apply to the block-level element.
-   */
-  this.formatBlock = function (element) {
+  }
+  bold() {
+    this.formatInline("B");
+  }
+  italic() {
+    this.formatInline("I");
+  }
+  underline() {
+    this.formatInline("U");
+  }
+  super() {
+    this.formatInline("SUP");
+  }
+  sub() {
+    this.formatInline("SUB");
+  }
+  formatBlock(element) {
     this.setSelection();
     try {
-      const display = window.getComputedStyle(
-        this.range.startContainer.parentNode
-      ).display;
+      const display = window.getComputedStyle(this.range.startContainer.parentNode).display;
       if (display === "block") {
         const el = document.createElement(element);
         el.innerHTML = this.range.startContainer.parentNode.innerHTML;
-        this.range.startContainer.parentNode.parentNode.replaceChild(
-          el,
-          this.range.startContainer.parentNode
-        );
+        this.range.startContainer.parentNode.parentNode.replaceChild(el, this.range.startContainer.parentNode);
       }
-    } catch (e) {}
-    this.node.dispatchEvent(
-      new Event("input", { bubbles: true, cancelable: true, composed: true })
-    );
-  };
-
-  /**
-   * Aligns the text in the selected block-level element.
-   * @param {string} align - The alignment type (e.g., 'left', 'right', 'center', 'justify').
-   */
-  this.alignText = function (align) {
+    } catch (e) { }
+    this.dispatchChangeEvent();
+  }
+  alignText(align) {
     this.setSelection();
     try {
-      const display = window.getComputedStyle(
-        this.range.startContainer.parentNode
-      ).display;
+      const display = window.getComputedStyle(this.range.startContainer.parentNode).display;
       if (display === "block") {
         this.range.startContainer.parentNode.style.textAlign = align;
         this.range.endContainer.parentNode.style.textAlign = align;
         this.selection.removeAllRanges();
         this.selection.addRange(this.range);
       }
-    } catch (e) {}
-    this.node.dispatchEvent(
-      new Event("input", { bubbles: true, cancelable: true, composed: true })
-    );
-  };
-
-  /**
-   * Checks if the current selection is wrapped in a specified tag.
-   * @param {string} tag - The tag name to check for.
-   * @returns {number} The level of nesting of the tag or 0 if not present.
-   */
-  this.hasFormat = function (tag) {
+    } catch (e) { }
+    this.dispatchChangeEvent();
+  }
+  hasFormat(tag) {
     try {
       const upperTag = tag.toUpperCase();
       let currentNode = this.range.startContainer;
@@ -418,19 +368,11 @@ function Editor(node, shadow = null) {
         currentNode = currentNode.parentNode;
       }
       return 0;
-    } catch (e) {}
-  };
-
-  /**
-   * Inserts an image at the current cursor position.
-   * @param {string} url - The source URL of the image to insert.
-   */
-  this.insertImage = function (url) {
+    } catch (e) { }
+  }
+  insertImage(url) {
     this.setSelection();
-    if (
-      this.selection &&
-      this.selection.anchorOffset === this.selection.focusOffset
-    ) {
+    if (this.selection && this.selection.anchorOffset === this.selection.focusOffset) {
       try {
         const img = document.createElement("resizable-img");
         img.contentEditable = false;
@@ -442,119 +384,54 @@ function Editor(node, shadow = null) {
         this.range.setStartAfter(img);
         this.range.collapse(true);
         this.range.insertNode(space);
-        this.node.dispatchEvent(
-          new Event("input", {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          })
-        );
-        img.addEventListener("removed", () => {
-          this.node.dispatchEvent(
-            new Event("input", {
-              bubbles: true,
-              cancelable: true,
-              composed: true,
-            })
-          );
-        });
-        img.addEventListener("resize", () => {
-          this.node.dispatchEvent(
-            new Event("input", {
-              bubbles: true,
-              cancelable: true,
-              composed: true,
-            })
-          );
-        });
+        this.dispatchChangeEvent();
+        img.addEventListener("removed", this.dispatchChangeEvent.bind(this));
+        img.addEventListener("resize", this.dispatchChangeEvent.bind(this));
       } catch (e) {
-        console.log(e)
+        console.log(e);
       }
     } else {
-      console.log('no')
+      console.log('no');
     }
-  };
-
-  /**
-   * Inserts an image at the current cursor position from a file input as a base64-encoded string.
-   */
-  this.insertBase64Image = function () {
-    // Create a hidden file input element
+  }
+  insertBase64Image() {
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = "image/*";
     fileInput.style.display = "none";
-
-    // Append the file input to the document body
     document.body.appendChild(fileInput);
 
-    // Set an event listener to handle the file selection
     fileInput.addEventListener("change", () => {
       const file = fileInput.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = (event) => {
           const base64String = event.target.result;
-
-          // Reuse the existing insertImage method to insert the image
           this.insertImage(base64String);
         };
-
-        // Read the file as a data URL (base64 string)
         reader.readAsDataURL(file);
       }
-
-      // Remove the file input from the DOM
       document.body.removeChild(fileInput);
     });
-
-    // Trigger the click event to open the file dialog
     fileInput.click();
-  };
-
-  /**
-   * Inserts a MathML equation into the editor using a modal dialog box with Mathlive input.
-   */
-  this.insertMathML = function () {
+  }
+  insertMathML() {
     this.setSelection();
-
     const space = document.createTextNode("\u2009");
     const mathElement = document.createElement("latex-renderer");
-      if (
-        this.selection &&
-        this.selection.anchorOffset === this.selection.focusOffset
-      ) {
-        this.range.insertNode(mathElement);
-        this.range.setStartAfter(mathElement);
-        this.range.collapse(true);
-        this.range.insertNode(space);
-        mathElement.focus();
-        this.node.dispatchEvent(
-          new Event("input", {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          })
-        );
-        mathElement.addEventListener("removed", () => {
-          this.node.dispatchEvent(
-            new Event("input", {
-              bubbles: true,
-              cancelable: true,
-              composed: true,
-            })
-          );
-        });
-      }
-  return
-  };
-
-  this.inserSymbol = function () {
+    if (this.selection && this.selection.anchorOffset === this.selection.focusOffset) {
+      this.range.insertNode(mathElement);
+      this.range.setStartAfter(mathElement);
+      this.range.collapse(true);
+      this.range.insertNode(space);
+      mathElement.focus();
+      this.dispatchChangeEvent();
+      mathElement.addEventListener("removed", this.dispatchChangeEvent.bind(this));
+    }
+  }
+  insertSymbol() {
     this.setSelection();
-    if (
-      this.selection &&
-      this.selection.anchorOffset === this.selection.focusOffset
-    ) {
+    if (this.selection && this.selection.anchorOffset === this.selection.focusOffset) {
       try {
         const symbolPicker = document.createElement("symbol-picker");
         document.body.appendChild(symbolPicker);
@@ -562,62 +439,22 @@ function Editor(node, shadow = null) {
           const symbol = symbolPicker.value;
           const node = document.createTextNode(symbol);
           this.range.insertNode(node);
-          this.node.dispatchEvent(
-            new Event("input", {
-              bubbles: true,
-              cancelable: true,
-              composed: true,
-            })
-          );
+          this.dispatchChangeEvent();
           document.body.removeChild(symbolPicker);
         });
-      } catch (e) {}
+      } catch (e) { }
     }
-  };
-
-  /**
-   * Inserts a list (ordered or unordered) at the current cursor position.
-   * @param {string} type - The type of list to insert ('ol' or 'ul').
-   */
-  this.insertList = function (type) {
+  }
+  insertList(type) {
     this.setSelection();
     try {
-      const ol = document.createElement(type);
-      const li = document.createElement("li");
-      ol.appendChild(li);
+      const list = document.createElement(type);
+      const listItem = document.createElement("li");
+      list.appendChild(listItem);
       this.range.collapse(false);
-      this.range.insertNode(ol);
-    } catch (e) {}
-  };
-
-  /**
-   * Inserts a table at the current cursor position.
-   * @param {number} rows - The number of rows for the table.
-   * @param {number} cols - The number of columns for the table.
-   */
-  this.insertTable = function (rows, cols) {
-    this.setSelection();
-    try {
-      const table = document.createElement("table");
-      table.style.float = "left";
-      table.border = "1";
-
-      for (let i = 0; i < rows; i++) {
-        const row = document.createElement("tr");
-        row.height = 200;
-        for (let j = 0; j < cols; j++) {
-          const col = document.createElement("td");
-          col.width = 70;
-          col.height = 30;
-          row.appendChild(col);
-        }
-        table.appendChild(row);
-      }
-      this.range.collapse(true);
-      this.range.insertNode(table);
-    } catch (e) {}
-  };
-  this.init();
+      this.range.insertNode(list);
+    } catch (e) { }
+  }
 }
 
 export default Editor;

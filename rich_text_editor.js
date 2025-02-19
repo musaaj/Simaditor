@@ -1,12 +1,12 @@
 import Editor from "./editor";
-import FormulaIcon from "./math.svg"
-import BoldIcon from "./bold.svg"
-import ItalicsIcon from "./italics.svg"
-import UndelineIcon from "./underline.svg"
-import SuperIcon from "./super.svg"
-import SubIcon from "./sub.svg"
-import InsertIcon from "./omega.svg"
-import ImageIcon from "./image.svg"
+import FormulaIcon from "./icons/math.svg"
+import BoldIcon from "./icons/bold.svg"
+import ItalicsIcon from "./icons/italics.svg"
+import UndelineIcon from "./icons/underline.svg"
+import SuperIcon from "./icons/super.svg"
+import SubIcon from "./icons/sub.svg"
+import InsertIcon from "./icons/omega.svg"
+import ImageIcon from "./icons/image.svg"
 
 class RichTextEditor extends HTMLElement {
   constructor(){
@@ -20,15 +20,43 @@ class RichTextEditor extends HTMLElement {
     this.syncProperties()
     this.editor.setText(value)
     this.editorPane.focus();
-    this.editorPane.addEventListener('input', this._emitInputEvent.bind(this))
-    this.addEventListener('input', this._emitChangeEvent.bind(this))
+    this.editor.addChangeListener(this._emitInputEvent.bind(this))
+    this.addEventListener('keydown', e => {
+      if (e.altKey) {
+        e.preventDefault()
+        switch(e.key) {
+          case '=':
+            this.editor.insertMathML()
+            return false;
+          case 'i':
+            this.editor.insertBase64Image()
+            return false;
+        }
+      }
+      if (e.ctrlKey) {
+        switch (e.key) {
+          case 'b':
+            e.preventDefault()
+            this.editor.bold()
+            return false;
+          case 'i':
+            e.preventDefault()
+            this.editor.italic()
+            return false;
+          case 'u':
+            e.preventDefault()
+            this.editor.underline();
+            return false;
+        }
+      }
+    })
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
     if (name === 'value') {
       //this.editor.setText(newValue)
     } else if(this.editorPane && this.editorPane[name] !== newValue) {
-      this.editorPane[name] = newValue? newValue : '';
+      this[name] = newValue? newValue : '';
     }
   }
 
@@ -60,6 +88,11 @@ class RichTextEditor extends HTMLElement {
         text-align: left;
         letter-spacing: 0.1em;
         word-spacing: 0.1em;
+    }
+    .rich-container > .editor-area > p:fist-child {
+      background-color: red;
+      margin-top: 0pt;
+      font-size:2pt;
     }
     .rich-container > .editor-area img{
       display: inline-block;
@@ -107,7 +140,7 @@ class RichTextEditor extends HTMLElement {
       {label: SubIcon, action: ()=>this.editor.sub()},
       {label: ImageIcon, action: ()=>this.editor.insertBase64Image()},
       {label: FormulaIcon, action: ()=>this.editor.insertMathML()},
-      {label: InsertIcon, action: ()=>this.editor.inserSymbol()},
+      {label: InsertIcon, action: ()=>this.editor.insertSymbol()},
     ]
     for(const btn of btns){
       toolbar.appendChild(createBtn(btn));
@@ -127,7 +160,7 @@ class RichTextEditor extends HTMLElement {
     this.appendChild(this.editorContainer)
   }
 
-  _emitInputEvent(){
+  _emitInputEvent(e){
     const event = new Event('input', {
       bubbles: true,
       cancelable: true,
@@ -138,7 +171,7 @@ class RichTextEditor extends HTMLElement {
     this.dispatchEvent(event)
   }
 
-  _emitChangeEvent(){
+  _emitChangeEvent(e){
     const event = new Event('change', {
       bubbles: true,
       cancelable: true,

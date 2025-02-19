@@ -11,6 +11,7 @@ class SymbolPicker extends HTMLElement {
   connectedCallback() {
     // Create a modal overlay
     this.modalOverlay = document.createElement("div");
+    this.modalOverlay.style.zIndex = 10000;
     this.modalOverlay.style.position = "fixed";
     this.modalOverlay.style.top = "0";
     this.modalOverlay.style.left = "0";

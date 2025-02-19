@@ -23,8 +23,10 @@ function html2Editor(parent) {
 
 function replaceWithResizableImage(parent, img) {
     const resizableImage = document.createElement("resizable-img");
-    copyAttributes(img, resizableImage);
-    resizableImage.setAttribute('contentEditable', false)
+    resizableImage.setAttribute('contentEditable', false);
+    resizableImage.setAttribute('width', img.getAttribute('width') || '200');
+    resizableImage.setAttribute('height', img.getAttribute('height') || '200');
+    resizableImage.setAttribute('src', img.getAttribute('src'));
     parent.replaceChild(resizableImage, img);
 }
 

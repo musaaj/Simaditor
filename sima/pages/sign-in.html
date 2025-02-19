@@ -1,0 +1,13 @@
+<div>
+    <div class="form-group">
+        <label for="email">Username</label>
+        <input type="text" x-model="logins.username"name="username" placeholder="Enter your username" required>
+    </div>
+    <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" x-model="logins.password"name="password" placeholder="Enter your password" required>
+    </div>
+    <div class="form-group">
+        <button type="submit" x-on:click="login">Sign In</button>
+    </div>
+</div>

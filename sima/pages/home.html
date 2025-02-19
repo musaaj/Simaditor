@@ -1,0 +1,23 @@
+<div>
+  <ol>
+    <template x-for="(question, idx) in questions">
+      <li
+        x-data="{showAnswer: false, 
+                toggleAnswer(){this.showAnswer = !this.showAnswer}, 
+                edit(){this.$router.navigate('/edit/'+idx)}}"
+      >
+        <rich-textarea x-html="question.text"></rich-textarea>
+        <button @click="toggleAnswer()">toggle</button>
+        <button @click="edit()">Edit</button>
+        <template x-if="showAnswer">
+          <ol>
+            <template x-for="answer in question.answers">
+              <li x-html="answer.text"></li>
+            </template>
+          </ol>
+        </template>
+      </li>
+    </template>
+  </ol>
+</div>
+

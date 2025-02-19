@@ -42,6 +42,7 @@ class ResizableImage extends HTMLElement {
     }
   
     connectedCallback() {
+      this.contentEditable = false
 	this.innerHTML = `
         <style>
           .containers {
